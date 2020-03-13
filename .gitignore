@@ -1,0 +1,9 @@
+.user*
+venv/
+.vscode
+*.pyc
+*.pyo
+__pycache__
+result.html
+run.log
+dist.tar
