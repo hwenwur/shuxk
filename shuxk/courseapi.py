@@ -29,7 +29,7 @@ class CourseAPI:
             request_url = self.mainUrl + path
         return request_url
 
-    def http_request(self, path, method="GET", params=None, data=None):
+    def http_request(self, path, method="GET", params=None, data=None) -> requests.models.Response:
         """http request with auth.(default: GET)
         """
         request_url = self.resolve_url(path)
@@ -51,6 +51,8 @@ class CourseAPI:
         return self.http_request(path, method="POST", data=data)
 
     def is_select_time(self, autoRetry=True):
+        """判断是否在选课时间
+        """
         try:
             r = self.http_get("/CourseSelectionStudent/FastInput")
         except requests.exceptions.RequestException as e:
@@ -90,13 +92,14 @@ class CourseAPI:
         td = html.xpath("//table[@class='tbllist']/tr/td")
         self._logger.debug(f"GetCourseInfo: td length={len(td)}")
         CourseInfo = namedtuple(
-            "CourseInfo", ["courseName", "teacherName", "capacity", "studentNum", "credit"])
+            "CourseInfo", ["courseName", "teacherName", "capacity", "studentNum", "credit", "selectRestrict"])
         return CourseInfo(
             courseName=td[1].text.strip(),
             credit=int(td[2].text.strip()),
             teacherName=td[4].text.strip(),
             capacity=int(td[7].text.strip()),
-            studentNum=int(td[8].text.strip())
+            studentNum=int(td[8].text.strip()),
+            selectRestrict=td[10].text.strip()
         )
 
     def select_course(self, courses):
@@ -130,12 +133,35 @@ class CourseAPI:
             return False
         r = self.http_post(
             "/CourseSelectionStudent/CtrlViewOperationResult", data=data)
-        # 由于写代码时选课系统未开放， 所以无法自动判断是否成功。
-        # 临时方案
-        # TODO
-        import pathlib
-        output_path = pathlib.Path("result.html").resolve()
-        with output_path.open("w", encoding="utf-8") as file:
-            file.write(r.text)
-        print(f"选课结果已输出至：{str(output_path)}")
-        return True
+
+        html = lxml.etree.HTML(r.text)
+        table_rows = html.xpath("//table/tr/td/..")
+        if len(table_rows) <= 1:
+            # 无法自动分析结果
+            import pathlib
+            output_path = pathlib.Path("result.html").resolve()
+            with output_path.open("w", encoding="utf-8") as file:
+                file.write(r.text)
+            self._logger.error(f"无法解析选课结果，原始结果已保存至{str(output_path)}。len(table_rows) = {len(table_rows)}")
+            raise RuntimeError("无法解析选课结果")
+        message = table_rows[0].xpath("td/text()")[0].strip()
+        SelectCourseResult = namedtuple("SelectCourseResult", [
+            "courseSeq", "courseName", "teacherSeq", "teacherName", "credit", "courseTime", "failedCause", "success"
+        ])
+        del table_rows[0]
+        result = list()
+        for tb_item in table_rows:
+            tb_datas = tb_item.xpath("td/text()")
+            tb_datas = [x.strip() for x in tb_datas]
+            item_result = SelectCourseResult(
+                courseSeq=tb_datas[1],
+                courseName=tb_datas[2],
+                teacherSeq=tb_datas[3],
+                teacherName=tb_datas[4],
+                credit=tb_datas[5],
+                courseTime=tb_datas[6],
+                failedCause=tb_datas[9],
+                success="成功" in tb_datas[9]
+            )
+            result.append(item_result)
+        return tuple(result)

@@ -12,7 +12,7 @@ pack: clean
 	@tar -tf dist.tar
 
 cloc:
-	cloc ./ --exclude-dir=.vscode,venv
+	cloc ./ --exclude-dir=.vscode,venv,temp
 
 
 clean:

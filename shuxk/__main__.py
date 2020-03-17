@@ -5,6 +5,7 @@ import logging
 import pathlib
 import time
 import sys
+from getpass import getpass
 
 
 # 选课开始之前刷新间隔
@@ -60,12 +61,12 @@ def main():
     if pathlib.Path(cache_file).exists():
         user = SHUer.from_file(cache_file)
     else:
-        password = input("请输入密码:")
+        password = getpass()
         user = SHUer(studentCode, password)
 
     try:
         user.refershToken()
-        user.dump_to(".user%d" % studentCode)
+        user.dump_to(cache_file)
         print("登录成功!")
     except RuntimeError as e:
         print(f"登录失败:{e.args}")
@@ -73,25 +74,30 @@ def main():
 
     api = CourseAPI(user)
 
-    courses = read_courses()
-    for x in courses:
-        print(f"待选课程：{x[0]}-{x[1]}")
+    info = api.get_course_info("00853619", "1774")
+    print(info)
+    # courses = read_courses()
+    # for x in courses:
+    #     print(f"待选课程：{x[0]}-{x[1]}")
 
-    while True:
-        try:
-            select_time = api.is_select_time()
-            if select_time:
-                print("开始选课...")
-                break
-            else:
-                print("选课未开始")
-                time.sleep(BEFORE_INTERNAL)
-        except CannotJudgeError:
-            print("无法判断")
-            time.sleep(FAILED_INTERNAL)
-    while not api.select_course(courses):
-        print(f"选课失败，{SELECT_INTERNAL}秒后重试...")
-        time.sleep(SELECT_INTERNAL)
+    # while True:
+    #     try:
+    #         select_time = api.is_select_time()
+    #         if select_time:
+    #             print("开始选课...")
+    #             break
+    #         else:
+    #             print("选课未开始")
+    #             time.sleep(BEFORE_INTERNAL)
+    #     except CannotJudgeError:
+    #         print("无法判断")
+    #         time.sleep(FAILED_INTERNAL)
+    # while not (r := api.select_course(courses)):
+    #     print(f"选课失败，{SELECT_INTERNAL}秒后重试...")
+    #     time.sleep(SELECT_INTERNAL)
+    # print("选课结果:")
+    # for x in r:
+    #     print(x)
 
 
 if __name__ == "__main__":

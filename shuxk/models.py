@@ -13,7 +13,7 @@ class SHUer:
 
     HTTP_HEADERS = {
         # dummy user-agent
-		'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13) AppleWebKit/603.1.13 (KHTML, like Gecko) Version/10.1 Safari/603.1.13',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13) AppleWebKit/603.1.13 (KHTML, like Gecko) Version/10.1 Safari/603.1.13',
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
         "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7"
     }
@@ -32,7 +32,7 @@ class SHUer:
         if not hasattr(self, "_token"):
             self._logger.info("get token")
             self.refershToken()
-        
+
         if (time.time() - self._tokenUpdateAt) > self.tokenTTL:
             self._logger.info("auto refersh token")
             self.refershToken()
