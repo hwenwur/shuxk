@@ -61,7 +61,7 @@ def main():
     if pathlib.Path(cache_file).exists():
         user = SHUer.from_file(cache_file)
     else:
-        password = getpass()
+        password = getpass("登录密码：")
         user = SHUer(studentCode, password)
 
     try:
@@ -73,31 +73,28 @@ def main():
         return
 
     api = CourseAPI(user)
+    courses = read_courses()
+    for x in courses:
+        print(f"待选课程：{x[0]}-{x[1]}")
 
-    info = api.get_course_info("00853619", "1774")
-    print(info)
-    # courses = read_courses()
-    # for x in courses:
-    #     print(f"待选课程：{x[0]}-{x[1]}")
-
-    # while True:
-    #     try:
-    #         select_time = api.is_select_time()
-    #         if select_time:
-    #             print("开始选课...")
-    #             break
-    #         else:
-    #             print("选课未开始")
-    #             time.sleep(BEFORE_INTERNAL)
-    #     except CannotJudgeError:
-    #         print("无法判断")
-    #         time.sleep(FAILED_INTERNAL)
-    # while not (r := api.select_course(courses)):
-    #     print(f"选课失败，{SELECT_INTERNAL}秒后重试...")
-    #     time.sleep(SELECT_INTERNAL)
-    # print("选课结果:")
-    # for x in r:
-    #     print(x)
+    while True:
+        try:
+            select_time = api.is_select_time()
+            if select_time:
+                print("开始选课...")
+                break
+            else:
+                print("选课未开始")
+                time.sleep(BEFORE_INTERNAL)
+        except CannotJudgeError:
+            print("无法判断")
+            time.sleep(FAILED_INTERNAL)
+    while not (r := api.select_course(courses)):
+        print(f"选课失败，{SELECT_INTERNAL}秒后重试...")
+        time.sleep(SELECT_INTERNAL)
+    print("选课结果:")
+    for x in r:
+        print(x)
 
 
 if __name__ == "__main__":
