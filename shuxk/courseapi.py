@@ -131,7 +131,7 @@ class CourseAPI:
             selectRestrict=td[10].text.strip() if td[10].text else ""
         )
 
-    def select_course(self, courses):
+    def select_course(self, courses) -> SelectCourseResult:
         """选课
         :courses: List[Tuple(courseSeq, teacherSeq), ...]
         """

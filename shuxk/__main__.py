@@ -91,8 +91,9 @@ def main():
         time.sleep(SELECT_INTERNAL)
 
     print("选课结果:")
-    for x in r:
-        print(x)
+    for item in r:
+        print(
+            f"{item.courseName}({item.courseSeq}) - {item.teacherName} - {item.failedCause}")
 
 
 if __name__ == "__main__":
