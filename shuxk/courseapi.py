@@ -69,13 +69,10 @@ class CourseAPI:
             return False
         elif "英语等级" in r.text:
             return True
-        elif autoRetry:
-            self._logger.warn("疑似 Token 失效")
+        else:
+            self._logger.warning("疑似 Token 失效: %s", r.text)
             # self.shuer.refershToken()
             # TODO
-        else:
-            # 意料之外的情况
-            raise CannotJudgeError
 
     def get_course_info(self, courseSeq, teacherSeq):
         params = {
