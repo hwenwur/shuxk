@@ -184,7 +184,8 @@ class CourseAPI:
         """
         start = time.time()
         while not self.in_select_time():
-            if (time.time() - start) > timeout:
+            if timeout != -1 and (time.time() - start) > timeout:
+                self._logger.info("等待超时")
                 return
             self._logger.info("选课未开始")
             time.sleep(interval)

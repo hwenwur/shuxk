@@ -65,6 +65,7 @@ class SHUer:
     def _refershToken(self):
         """刷新或者获取 ASP.NET_SessionId
         """
+        self._logger.info("登录中...")
         session = requests.Session()
         session.headers.update(self.HTTP_HEADERS)
         r = session.get(self.startUrl)

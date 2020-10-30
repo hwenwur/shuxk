@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import os
 import pathlib
 import sys
 import time
@@ -81,6 +82,9 @@ def main():
             break
         except CannotJudgeError:
             time.sleep(FAILED_INTERNAL)
+        except KeyboardInterrupt:
+            print("程序终止")
+            sys.exit(1)
 
     while not (r := api.select_course(courses)):
         print(f"选课失败，{SELECT_INTERNAL}秒后重试...")
