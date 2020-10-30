@@ -5,24 +5,30 @@ import logging
 import lxml.etree
 from collections import namedtuple
 
-
-class CannotJudgeError(Exception):
-    pass
+from .exceptions import CannotJudgeError
 
 
 class CourseAPI:
-    mainUrl = "http://xk.autoisp.shu.edu.cn"
+    mainUrl = "http://xk.autoisp.shu.edu.cn:8084"
+    _session: requests.sessions.Session
 
-    def __init__(self, shuer: SHUer):
-        """:shuer: SHUer
-        """
-        self.shuer = shuer
-        self.HTTP_HEADERS = shuer.HTTP_HEADERS
+    HTTP_HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13) AppleWebKit/603.1.13 (KHTML, like Gecko) Version/10.1 Safari/603.1.13',
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7"
+    }
+
+    def __init__(self, studentCode, token):
+        self._token = token
+        self.studentCode = studentCode
         self._logger = logging.getLogger(__name__)
         self._session = requests.Session()
         self._session.headers.update(self.HTTP_HEADERS)
 
     def resolve_url(self, path):
+        """选课系统每学期的端口号都不一样，例如：http://xk.autoisp.shu.edu.cn:8084。
+        本函数可根据 mainUrl 返回合适的 request_url
+        """
         if self.mainUrl.endswith("/"):
             request_url = self.mainUrl[:-1] + path
         else:
@@ -34,7 +40,7 @@ class CourseAPI:
         """
         request_url = self.resolve_url(path)
         session = self._session
-        session.cookies.set("ASP.NET_SessionId", self.shuer.token)
+        session.cookies.set("ASP.NET_SessionId", self._token)
         request_method = getattr(session, method.lower())
         self._logger.debug(f"http {method}: {path}")
         r = request_method(request_url, params=params, data=data)
@@ -63,10 +69,11 @@ class CourseAPI:
         elif "英语等级" in r.text:
             return True
         elif autoRetry:
-            self._logger.warn("疑似 Token 失效, 自动更新中...")
-            self.shuer.refershToken()
-            return self.is_select_time(autoRetry=False)
+            self._logger.warn("疑似 Token 失效")
+            # self.shuer.refershToken()
+            # TODO
         else:
+            # 意料之外的情况
             raise CannotJudgeError
 
     def get_course_info(self, courseSeq, teacherSeq):
@@ -112,7 +119,7 @@ class CourseAPI:
             "IgnorClassMark": "False",
             "IgnorCourseGroup": "False",
             "IgnorCredit": "False",
-            "StudentNo": self.shuer.studentCode,
+            "StudentNo": self.studentCode,
             'ListCourse[0].CID': "",
             'ListCourse[0].TNo': "",
             'ListCourse[0].NeedBook': 'false'
@@ -142,9 +149,11 @@ class CourseAPI:
             output_path = pathlib.Path("result.html").resolve()
             with output_path.open("w", encoding="utf-8") as file:
                 file.write(r.text)
-            self._logger.error(f"无法解析选课结果，原始结果已保存至{str(output_path)}。len(table_rows) = {len(table_rows)}")
+            self._logger.error(
+                f"无法解析选课结果，原始结果已保存至{str(output_path)}。len(table_rows) = {len(table_rows)}")
             raise RuntimeError("无法解析选课结果")
         message = table_rows[0].xpath("td/text()")[0].strip()
+        self._logger.info("选课结果：%s", message)
         SelectCourseResult = namedtuple("SelectCourseResult", [
             "courseSeq", "courseName", "teacherSeq", "teacherName", "credit", "courseTime", "failedCause", "success"
         ])

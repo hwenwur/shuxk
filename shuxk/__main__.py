@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-from .models import SHUer
-from .courseapi import CourseAPI, CannotJudgeError
 import logging
 import pathlib
-import time
 import sys
+import time
 from getpass import getpass
 
+from .courseapi import CannotJudgeError, CourseAPI
+from .models import SHUer
 
 # 选课开始之前刷新间隔
 BEFORE_INTERNAL = 30
@@ -24,16 +24,22 @@ logger = logging.getLogger(__name__)
 
 
 def setup_logger():
+    """初始化日志
+    """
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
     hd = logging.StreamHandler()
-    hd.setFormatter(logging.Formatter("%(asctime)s-%(name)s-%(levelname)s:%(message)s"))
+    hd.setFormatter(logging.Formatter(
+        "%(asctime)s-%(name)s-%(levelname)s:%(message)s"))
     root.addHandler(hd)
 
     logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
 
 
 def read_courses():
+    """
+    :return: 返回数据格式[(课程号，教师号), ...]
+    """
     result = []
     with open("courses.txt", encoding="utf-8") as file:
         for line in file:
@@ -48,31 +54,23 @@ def read_courses():
 
 
 def main():
+    setup_logger()
+
     if len(sys.argv) != 2 or len(sys.argv[1]) != 8:
         print(help_content)
         return
-    setup_logger()
-    try:
-        studentCode = int(sys.argv[1])
-    except ValueError:
+
+    studentCode = sys.argv[1]
+    if len(studentCode) != 8:
         print("学号格式错误")
         return
-    cache_file = ".user%d" % studentCode
-    if pathlib.Path(cache_file).exists():
-        user = SHUer.from_file(cache_file)
-    else:
-        password = getpass("登录密码：")
-        user = SHUer(studentCode, password)
 
-    try:
-        user.refershToken()
-        user.dump_to(cache_file)
-        print("登录成功!")
-    except RuntimeError as e:
-        print(f"登录失败:{e.args}")
-        return
+    password = getpass("登录密码：")
+    user = SHUer(studentCode, password)
 
-    api = CourseAPI(user)
+    user.refershToken()
+
+    api = CourseAPI(user.studentCode, user.token)
     courses = read_courses()
     for x in courses:
         print(f"待选课程：{x[0]}-{x[1]}")
