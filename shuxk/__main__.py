@@ -77,12 +77,12 @@ def main():
 
     while True:
         try:
-            select_time = api.is_select_time()
+            select_time = api.in_select_time()
             if select_time:
                 print("开始选课...")
                 break
             else:
-                print("选课未开始")
+                logger.info("选课未开始")
                 time.sleep(BEFORE_INTERNAL)
         except CannotJudgeError:
             print("无法判断")

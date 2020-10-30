@@ -56,7 +56,7 @@ class CourseAPI:
         """
         return self.http_request(path, method="POST", data=data)
 
-    def is_select_time(self, autoRetry=True):
+    def in_select_time(self, autoRetry=True):
         """判断是否在选课时间
         """
         try:
@@ -135,7 +135,7 @@ class CourseAPI:
             data["ListCourse[%d].CID" % i] = ""
             data["ListCourse[%d].TNo" % i] = ""
             data["ListCourse[%d].NeedBook" % i] = "false"
-        if not self.is_select_time():
+        if not self.in_select_time():
             self._logger.error("现在不是选课时间")
             return False
         r = self.http_post(
