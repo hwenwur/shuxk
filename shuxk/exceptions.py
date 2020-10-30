@@ -8,3 +8,9 @@ class CannotJudgeError(RuntimeError):
     """无法判断结果错误。一般出现在选课系统改版之后。
     """
     pass
+
+
+class TokenExpiredError(RuntimeError):
+    """token 过期
+    """
+    pass

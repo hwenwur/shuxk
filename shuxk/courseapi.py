@@ -6,7 +6,7 @@ import lxml.etree
 import time
 from collections import namedtuple
 
-from .exceptions import CannotJudgeError
+from .exceptions import CannotJudgeError, TokenExpiredError
 
 
 SelectCourseResult = namedtuple("SelectCourseResult", [
@@ -65,22 +65,33 @@ class CourseAPI:
         """
         return self.http_request(path, method="POST", data=data)
 
-    def in_select_time(self, autoRetry=True):
-        """判断是否在选课时间
+    def in_select_time(self) -> bool:
+        """判断是否在选课时间。
+        结果明确是才会返回，无法判断时抛出 CannotJudgeError
         """
         try:
-            r = self.http_get("/CourseSelectionStudent/FastInput")
+            count = 0
+            while count < 10:
+                r = self.http_get("/CourseSelectionStudent/FastInput")
+                # 选课某些情况返回的内容不完整，所以首先校验完整性。
+                if "</html>" in r.text:
+                    break
+                else:
+                    self._logger.debug("in_select_time 获取结果不完整，自动重试...")
+                    count += 1
         except requests.exceptions.RequestException as e:
             self._logger.error(f"出错：{e}")
             raise CannotJudgeError
+
         if "选课时间未到" in r.text:
             return False
         elif "英语等级" in r.text:
             return True
+        elif "上海大学统一身份认证" in r.text:
+            raise TokenExpiredError
         else:
-            self._logger.warning("疑似 Token 失效: %s", r.text)
-            # self.shuer.refershToken()
-            # TODO
+            self._logger.warning("in_select_time 未知情况: %s", r.text)
+            raise CannotJudgeError
 
     def get_course_info(self, courseSeq, teacherSeq):
         """获取课程信息
