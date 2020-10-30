@@ -46,7 +46,7 @@ def read_courses():
         for line in file:
             if line.startswith("#"):
                 continue
-            if not line:
+            if not line.strip():
                 continue
             courseSeq, teacherSeq = line.split("-")
             result.append((courseSeq.strip(), teacherSeq.strip()))
