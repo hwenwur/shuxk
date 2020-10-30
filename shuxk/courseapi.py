@@ -9,6 +9,14 @@ from collections import namedtuple
 from .exceptions import CannotJudgeError
 
 
+SelectCourseResult = namedtuple("SelectCourseResult", [
+    "courseSeq", "courseName", "teacherSeq", "teacherName", "failedCause", "success"
+])
+CourseInfo = namedtuple("CourseInfo", [
+    "courseName", "teacherName", "capacity", "studentNum", "credit", "selectRestrict"
+])
+
+
 class CourseAPI:
     mainUrl = "http://xk.autoisp.shu.edu.cn:8084"
     _session: requests.sessions.Session
@@ -75,69 +83,70 @@ class CourseAPI:
             # TODO
 
     def get_course_info(self, courseSeq, teacherSeq):
+        """获取课程信息
+        :courseSeq: 课程号
+        :teacherSeq: 教师号
+
+        :result: [CourseInfo(), ...]
+        """
         params = {
-            "CourseNo": courseSeq,
-            "TeachNo": teacherSeq,
-            "CourseName": "",
-            "TeachName": "",
-            "CourseTime": "",
-            "NotFull": False,
-            "Credit": "",
-            "Campus": 0,
-            "Enrolls": "",
-            "DataCount": 0,
-            "MinCapacity": "",
-            "MaxCapacity": "",
             "PageIndex": 1,
-            "PageSize": 20,
-            "FunctionString": "InitPage"
+            "PageSize": 30,
+            "FunctionString": "Query",
+            "CID": courseSeq,
+            "CourseName": "",
+            "IsNotFull": "false",
+            "CourseType": "B",
+            "TeachNo": teacherSeq,
+            "TeachName": "",
+            "Enrolls": "",
+            "Capacity1": "",
+            "Capacity2": "",
+            "CampusId": "",
+            "CollegeId": "",
+            "Credit": "",
+            "TimeText": ""
         }
-        r = self.http_get("/StudentQuery/CtrlViewQueryCourse", params)
+        r = self.http_get("/StudentQuery/QueryCourseList", params)
         html = lxml.etree.HTML(r.text)
         td = html.xpath("//table[@class='tbllist']/tr/td")
-        self._logger.debug(f"GetCourseInfo: td length={len(td)}")
-        CourseInfo = namedtuple(
-            "CourseInfo", ["courseName", "teacherName", "capacity", "studentNum", "credit", "selectRestrict"])
+        self._logger.debug(f"GetCourseInfo: td length={len(td)},")
         return CourseInfo(
             courseName=td[1].text.strip(),
             credit=int(td[2].text.strip()),
-            teacherName=td[4].text.strip(),
+            teacherName=td[4].xpath("./span/text()")[0],
             capacity=int(td[7].text.strip()),
             studentNum=int(td[8].text.strip()),
-            selectRestrict=td[10].text.strip()
+            selectRestrict=td[10].text.strip() if td[10].text else ""
         )
 
     def select_course(self, courses):
-        if len(courses) > 6:
-            self._logger.warn(f"单次选课数量(当前：{len(courses)})应小于等于6. 已忽略多余的。")
+        """选课
+        :courses: List[Tuple(courseSeq, teacherSeq), ...]
+        """
+        if len(courses) > 8:
+            self._logger.warn(f"单次选课数量(当前：{len(courses)})应小于等于8. 已忽略多余的。")
         if len(courses) == 0:
             self._logger.warn(f"没有待选课程")
             return True
+        # 最多 9 个，格式如下。
+        # tnos[i] 表示教师号，cids[i] 表示课程号。0 <= i <= 8
         data = {
-            "IgnorClassMark": "False",
-            "IgnorCourseGroup": "False",
-            "IgnorCredit": "False",
-            "StudentNo": self.studentCode,
-            'ListCourse[0].CID': "",
-            'ListCourse[0].TNo': "",
-            'ListCourse[0].NeedBook': 'false'
+            "tnos[0]": "",
+            "cids[0]": ""
         }
         for i, c in enumerate(courses):
             courseSeq = c[0]
             teacherSeq = c[1]
-            data["ListCourse[%d].CID" % i] = courseSeq
-            data["ListCourse[%d].TNo" % i] = teacherSeq
-            data["ListCourse[%d].NeedBook" % i] = "false"
+            data["cids[%d]" % i] = courseSeq
+            data["tnos[%d]" % i] = teacherSeq
+        # 未使用的填充空字符
+        for i in range(1 + i, 9):
+            data["cids[%d]" % i] = ""
+            data["tnos[%d]" % i] = ""
 
-        for i in range(1 + i, 6):
-            data["ListCourse[%d].CID" % i] = ""
-            data["ListCourse[%d].TNo" % i] = ""
-            data["ListCourse[%d].NeedBook" % i] = "false"
-        if not self.in_select_time():
-            self._logger.error("现在不是选课时间")
-            return False
         r = self.http_post(
-            "/CourseSelectionStudent/CtrlViewOperationResult", data=data)
+            "/CourseSelectionStudent/CourseSelectionSave", data=data)
 
         html = lxml.etree.HTML(r.text)
         table_rows = html.xpath("//table/tr/td/..")
@@ -150,27 +159,25 @@ class CourseAPI:
             self._logger.error(
                 f"无法解析选课结果，原始结果已保存至{str(output_path)}。len(table_rows) = {len(table_rows)}")
             raise RuntimeError("无法解析选课结果")
-        message = table_rows[0].xpath("td/text()")[0].strip()
-        self._logger.info("选课结果：%s", message)
-        SelectCourseResult = namedtuple("SelectCourseResult", [
-            "courseSeq", "courseName", "teacherSeq", "teacherName", "credit", "courseTime", "failedCause", "success"
-        ])
-        del table_rows[0]
+
+        # 最后一行是 "关闭" 按钮
+        del table_rows[-1]
         result = list()
         for tb_item in table_rows:
             tb_datas = tb_item.xpath("td/text()")
             tb_datas = [x.strip() for x in tb_datas]
-            item_result = SelectCourseResult(
-                courseSeq=tb_datas[1],
-                courseName=tb_datas[2],
-                teacherSeq=tb_datas[3],
-                teacherName=tb_datas[4],
-                credit=tb_datas[5],
-                courseTime=tb_datas[6],
-                failedCause=tb_datas[9],
-                success="成功" in tb_datas[9]
-            )
-            result.append(item_result)
+            if len(tb_datas) == 6:
+                item_result = SelectCourseResult(
+                    courseSeq=tb_datas[1],
+                    courseName=tb_datas[2],
+                    teacherSeq=tb_datas[3],
+                    teacherName=tb_datas[4],
+                    failedCause=tb_datas[5],
+                    success="成功" in tb_datas[5]
+                )
+                result.append(item_result)
+            else:
+                self._logger.error("选课结果解析失败：%s", "".join(tb_datas))
         return tuple(result)
 
     def waitting(self, interval, timeout=-1):
