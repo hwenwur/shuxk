@@ -10,10 +10,12 @@
 - 捡漏模式：在选课期间，定时刷新某门课程容量，如果有空余（扩容或有人退课）立即选课。
 
 ## 安装依赖
+Python 3.7+
 ```shell
 pip install -r requirements.txt
 ```
 如果下载速度很慢，可以尝试使用国内镜像，例如：[tuna](https://mirrors.tuna.tsinghua.edu.cn/help/pypi/)。
+
 
 ## 使用方法
 将待选课程添加到 courses.txt, 然后运行
@@ -25,9 +27,11 @@ python run.py 学号
 程序默认的刷新时间为：
 
 选课开始前：30s
+
 选课开始后：3s
+
 结果无法判断：5s
 
-如果需要，可自行修改 `shuxk/__main__.py` 文件，后期会使用配置文件。
+如有需要，可自行修改 `shuxk/__main__.py` 文件，后期会使用配置文件。
 
 提醒：**刷新频率过高会触发选课系统的风控。**
