@@ -16,7 +16,7 @@ Term = namedtuple("Term", ["id", "name"])
 class SHUer:
     _tokenUpdateAt = 0
     tokenTTL = 1500  # token 存活时间
-    startUrl = "http://xk.autoisp.shu.edu.cn:8084"
+    baseUrl = "http://xk.autoisp.shu.edu.cn:8084"
 
     HTTP_HEADERS = {
         # dummy user-agent
@@ -68,7 +68,7 @@ class SHUer:
         self._logger.info("登录中...")
         session = requests.Session()
         session.headers.update(self.HTTP_HEADERS)
-        r = session.get(self.startUrl)
+        r = session.get(self.baseUrl)
 
         request_url = r.url
         if not request_url.startswith("https://oauth.shu.edu.cn/login"):

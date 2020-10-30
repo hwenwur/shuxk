@@ -18,7 +18,7 @@ CourseInfo = namedtuple("CourseInfo", [
 
 
 class CourseAPI:
-    mainUrl = "http://xk.autoisp.shu.edu.cn:8084"
+    baseUrl = "http://xk.autoisp.shu.edu.cn:8084"
     _session: requests.sessions.Session
 
     HTTP_HEADERS = {
@@ -36,12 +36,12 @@ class CourseAPI:
 
     def resolve_url(self, path):
         """选课系统每学期的端口号都不一样，例如：http://xk.autoisp.shu.edu.cn:8084。
-        本函数可根据 mainUrl 返回合适的 request_url
+        本函数可根据 baseUrl 返回合适的 request_url
         """
-        if self.mainUrl.endswith("/"):
-            request_url = self.mainUrl[:-1] + path
+        if self.baseUrl.endswith("/"):
+            request_url = self.baseUrl[:-1] + path
         else:
-            request_url = self.mainUrl + path
+            request_url = self.baseUrl + path
         return request_url
 
     def http_request(self, path, method="GET", params=None, data=None) -> requests.models.Response:
