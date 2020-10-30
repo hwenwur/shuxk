@@ -77,19 +77,15 @@ def main():
 
     while True:
         try:
-            select_time = api.in_select_time()
-            if select_time:
-                print("开始选课...")
-                break
-            else:
-                logger.info("选课未开始")
-                time.sleep(BEFORE_INTERNAL)
+            api.waitting(BEFORE_INTERNAL)
+            break
         except CannotJudgeError:
-            print("无法判断")
             time.sleep(FAILED_INTERNAL)
+
     while not (r := api.select_course(courses)):
         print(f"选课失败，{SELECT_INTERNAL}秒后重试...")
         time.sleep(SELECT_INTERNAL)
+
     print("选课结果:")
     for x in r:
         print(x)

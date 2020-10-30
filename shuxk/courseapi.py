@@ -3,6 +3,7 @@ from .models import SHUer
 import requests
 import logging
 import lxml.etree
+import time
 from collections import namedtuple
 
 from .exceptions import CannotJudgeError
@@ -174,3 +175,17 @@ class CourseAPI:
             )
             result.append(item_result)
         return tuple(result)
+
+    def waitting(self, interval, timeout=-1):
+        """等待选课开始
+
+        :interval: 刷新时间。
+        :timeout: 最长等待时间，超出之后即使选课未开始也返回。-1 表示无穷大。
+        """
+        start = time.time()
+        while not self.in_select_time():
+            if (time.time() - start) > timeout:
+                return
+            self._logger.info("选课未开始")
+            time.sleep(interval)
+        self._logger.info("选课已经开始")
