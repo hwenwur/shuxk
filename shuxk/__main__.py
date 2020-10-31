@@ -6,8 +6,9 @@ import sys
 import time
 from getpass import getpass
 
-from .courseapi import CannotJudgeError, CourseAPI
+from .courseapi import CourseAPI
 from .models import SHUer
+from .exceptions import CannotJudgeError, TokenExpiredError
 
 # 选课开始之前刷新间隔
 BEFORE_INTERNAL = 30
@@ -82,6 +83,10 @@ def main():
             break
         except CannotJudgeError:
             time.sleep(FAILED_INTERNAL)
+        except TokenExpiredError:
+            logger.info("Token 失效，重新登录...")
+            user.refershToken()
+            api._token = user.token
         except KeyboardInterrupt:
             print("程序终止")
             sys.exit(1)
