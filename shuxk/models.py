@@ -16,7 +16,7 @@ Term = namedtuple("Term", ["id", "name"])
 class SHUer:
     _tokenUpdateAt = 0
     tokenTTL = 1500  # token 存活时间
-    baseUrl = "http://xk.autoisp.shu.edu.cn:8084"
+    baseUrl = "http://xk.autoisp.shu.edu.cn"
 
     HTTP_HEADERS = {
         # dummy user-agent

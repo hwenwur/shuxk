@@ -18,7 +18,7 @@ CourseInfo = namedtuple("CourseInfo", [
 
 
 class CourseAPI:
-    baseUrl = "http://xk.autoisp.shu.edu.cn:8084"
+    baseUrl = "http://xk.autoisp.shu.edu.cn"
     _session: requests.sessions.Session
 
     HTTP_HEADERS = {
